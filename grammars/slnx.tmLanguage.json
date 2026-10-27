@@ -1,0 +1,12 @@
+{
+  "name": "Solution (XML)",
+  "scopeName": "text.xml.slnx",
+  "fileTypes": [
+    "slnx"
+  ],
+  "patterns": [
+    {
+      "include": "text.xml.msbuild"
+    }
+  ]
+}

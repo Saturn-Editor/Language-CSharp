@@ -2,7 +2,7 @@
   "id": "csharp",
   "name": "C#",
   "version": "1.0.0",
-  "description": "Language module for C# files (.cs)",
+  "description": "Language module for C# projects",
   "badge": "C#",
   "saturnApi": "^0.1",
   "main": "module.js",

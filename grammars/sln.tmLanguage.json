@@ -1,0 +1,179 @@
+{
+  "name": "Solution",
+  "scopeName": "source.sln",
+  "fileTypes": [
+    "sln"
+  ],
+  "patterns": [
+    {
+      "include": "#header"
+    },
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#project"
+    },
+    {
+      "include": "#section"
+    },
+    {
+      "include": "#block-keyword"
+    },
+    {
+      "include": "#assignment"
+    }
+  ],
+  "repository": {
+    "header": {
+      "match": "^\\s*(Microsoft Visual Studio Solution File)(,)\\s*(Format Version)\\s+(\\d+(?:\\.\\d+)*)",
+      "captures": {
+        "1": {
+          "name": "entity.name.section.sln entity.name.function.sln"
+        },
+        "2": {
+          "name": "punctuation.separator.comma.sln"
+        },
+        "3": {
+          "name": "keyword.other.sln"
+        },
+        "4": {
+          "name": "constant.numeric.version.sln"
+        }
+      }
+    },
+    "comment": {
+      "match": "^\\s*(#).*$",
+      "name": "comment.line.number-sign.sln",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.comment.sln"
+        }
+      }
+    },
+    "project": {
+      "begin": "^\\s*(Project)(\\()",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.project.sln"
+        },
+        "2": {
+          "name": "punctuation.parenthesis.begin.sln"
+        }
+      },
+      "end": "$",
+      "name": "meta.project.sln",
+      "patterns": [
+        {
+          "match": "\\)",
+          "name": "punctuation.parenthesis.end.sln"
+        },
+        {
+          "match": "=",
+          "name": "keyword.operator.assignment.sln"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.sln"
+        },
+        {
+          "include": "#string"
+        }
+      ]
+    },
+    "section": {
+      "match": "^\\s*(GlobalSection|ProjectSection)(\\()([^)]*)(\\))\\s*(=)\\s*(preSolution|postSolution|preProject|postProject)?",
+      "captures": {
+        "1": {
+          "name": "keyword.other.section.sln"
+        },
+        "2": {
+          "name": "punctuation.parenthesis.begin.sln"
+        },
+        "3": {
+          "name": "entity.name.section.sln entity.name.function.sln"
+        },
+        "4": {
+          "name": "punctuation.parenthesis.end.sln"
+        },
+        "5": {
+          "name": "keyword.operator.assignment.sln"
+        },
+        "6": {
+          "name": "constant.language.sln"
+        }
+      }
+    },
+    "block-keyword": {
+      "match": "^\\s*(EndProjectSection|EndGlobalSection|EndProject|EndGlobal|Global)\\s*$",
+      "captures": {
+        "1": {
+          "name": "keyword.other.sln"
+        }
+      }
+    },
+    "assignment": {
+      "begin": "^\\s*(?=[^=\\s][^=]*=)",
+      "end": "$",
+      "name": "meta.assignment.sln",
+      "patterns": [
+        {
+          "begin": "\\G",
+          "end": "(?=\\s*=)",
+          "name": "variable.other.property.sln",
+          "patterns": [
+            {
+              "match": "\\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\\}",
+              "name": "constant.other.guid.sln constant.numeric.guid.sln"
+            }
+          ]
+        },
+        {
+          "begin": "\\s*(=)\\s*",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.operator.assignment.sln"
+            }
+          },
+          "end": "$",
+          "name": "string.unquoted.value.sln",
+          "patterns": [
+            {
+              "match": "\\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\\}",
+              "name": "constant.other.guid.sln constant.numeric.guid.sln"
+            },
+            {
+              "match": "^\\d+(?:\\.\\d+)+$|(?<=\\s|^)\\d+(?:\\.\\d+)+(?=\\s*$)",
+              "name": "constant.numeric.version.sln"
+            },
+            {
+              "match": "\\b(?:TRUE|FALSE|True|False|true|false)\\b",
+              "name": "constant.language.boolean.sln"
+            }
+          ]
+        }
+      ]
+    },
+    "string": {
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.sln"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.sln"
+        }
+      },
+      "name": "string.quoted.double.sln",
+      "patterns": [
+        {
+          "match": "\\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\\}",
+          "name": "constant.other.guid.sln"
+        }
+      ]
+    }
+  }
+}
