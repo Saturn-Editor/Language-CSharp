@@ -1,7 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, sep } from 'node:path';
 import { KEYWORDS, PRIMITIVE_TYPES } from './lib/csharp.js';
+import { install as installCsharpLs, isInstalled as csharpLsInstalled } from './lib/csharpls.js';
+import { registerDotnetCommands, stopAll } from './lib/dotnet.js';
 import { registerSolutionExplorer } from './lib/explorer.js';
+import { renderSolution } from './lib/preview.js';
 
 const RESERVED = new Set([...KEYWORDS, ...PRIMITIVE_TYPES]);
 
@@ -98,8 +101,15 @@ const byDepth = (projectPath) => (a, b) =>
   relative(projectPath, a).split(sep).length - relative(projectPath, b).split(sep).length ||
   relative(projectPath, a).localeCompare(relative(projectPath, b));
 
+let disposeExplorer = () => {};
+
+const previewCss = readFileSync(new URL('./preview.css', import.meta.url), 'utf8');
+
 export function activate(saturn) {
-  registerSolutionExplorer(saturn);
+  saturn.previews?.registerRenderer('csharp.solutionPreview', (text, ctx) => renderSolution(text, ctx, previewCss));
+  const dotnet = registerDotnetCommands(saturn);
+  disposeExplorer = registerSolutionExplorer(saturn, dotnet);
+  registerLanguageServerSetup(saturn);
 
   for (const [id, body] of Object.entries(TEMPLATES)) {
     saturn.files.registerTemplate(id, {
@@ -119,6 +129,7 @@ export function activate(saturn) {
         return;
       }
     }
+    saturn.window?.showMessage?.('No .csproj, .slnx or .sln file found in this project.', { kind: 'warning', projectPath });
   });
 
   saturn.projects.onCreate(({ projectPath, fields }) => {
@@ -143,4 +154,49 @@ export function activate(saturn) {
 
     if (fields.gitignore !== false) writeIfMissing(join(projectPath, '.gitignore'), GITIGNORE);
   });
+}
+
+/**
+ * Downloads csharp-ls into module storage in the background so it's ready before the server first starts,
+ * and registers csharp.installLanguageServer to install or update it on demand.
+ */
+function registerLanguageServerSetup(saturn) {
+  const storage = saturn.storagePath;
+  const notify = (n) => (saturn.window?.notify ? saturn.window.notify(n) : saturn.window?.showMessage?.(n.message ?? n.title, { kind: n.kind }));
+
+  async function setup({ update = false } = {}) {
+    if (!storage) return;
+    notify({ title: 'Setting up C#', message: update ? 'Updating csharp-ls…' : 'Downloading csharp-ls…' });
+    const result = await installCsharpLs(storage, { update });
+    if (result.ok) {
+      saturn.languageServer?.restart?.();
+      return notify({ title: 'C# is ready', message: 'csharp-ls is installed.' });
+    }
+    if (result.missingDotnet) {
+      return notify({
+        title: 'C# needs .NET SDK',
+        message: 'Install the .NET SDK, then restart Saturn.',
+        kind: 'error',
+        actions: [{ label: 'Download', url: 'https://dotnet.microsoft.com/download' }],
+      });
+    }
+    notify({
+      title: 'Could not install csharp-ls',
+      message: result.output.trim().split(/\r?\n/).slice(-3).join('\n'),
+      kind: 'error',
+      actions: [
+        { label: 'Retry', command: 'csharp.installLanguageServer' },
+        { label: 'Open settings', openSettings: true },
+      ],
+    });
+  }
+
+  saturn.commands.register('csharp.installLanguageServer', () => setup({ update: true }));
+  const custom = String(saturn.settings?.get?.('csharpLsPath') ?? '').trim();
+  if (storage && !custom && !csharpLsInstalled(storage)) setup();
+}
+
+export function deactivate() {
+  stopAll();
+  disposeExplorer();
 }

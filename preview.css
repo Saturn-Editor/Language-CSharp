@@ -1,0 +1,27 @@
+.solution {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--saturn-text);
+}
+.solution h1 { margin: 0 0 4px; font-size: 1.5em; font-weight: 600; color: var(--saturn-strong); display: flex; align-items: center; gap: 8px; }
+.solution h2 { margin: 28px 0 8px; font-size: 1.05em; font-weight: 600; color: var(--saturn-strong); }
+.solution .meta { margin: 0 0 20px; color: var(--saturn-muted); }
+.solution ul { list-style: none; margin: 0; padding: 0; }
+.solution ul ul { padding-left: 20px; border-left: 1px solid var(--saturn-divider); margin-left: 9px; }
+.solution li { margin: 2px 0; }
+.solution summary { cursor: pointer; padding: 3px 0; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.solution .project, .solution .file { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 3px 0; }
+.solution .name { font-weight: 500; color: var(--saturn-strong); }
+.solution .path { color: var(--saturn-muted); font-size: 0.9em; }
+.solution .badge {
+  display: inline-block; min-width: 2.4em; padding: 0 4px; border-radius: 4px; text-align: center;
+  font-size: 0.75em; font-weight: 600; color: var(--saturn-accent); border: 1px solid var(--saturn-border);
+}
+.solution .chip {
+  padding: 0 7px; border-radius: 10px; font-size: 0.8em; background: var(--saturn-panel); border: 1px solid var(--saturn-border); color: var(--saturn-muted);
+}
+.solution .chip.warn { color: #d9480f; border-color: #d9480f; }
+.solution .configs { display: flex; flex-wrap: wrap; gap: 6px; }
+.solution .empty { color: var(--saturn-muted); }

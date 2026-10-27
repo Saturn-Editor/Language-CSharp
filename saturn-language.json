@@ -1,0 +1,239 @@
+{
+  "id": "csharp",
+  "name": "C# .NET",
+  "badge": "C#",
+  "version": "2.0.0",
+  "description": "Language module for C#/.NET projects",
+  "saturnApi": "^0.2",
+  "main": "module.js",
+  "requires": [
+    {
+      "name": ".NET SDK",
+      "command": "dotnet",
+      "args": [
+        "--version"
+      ],
+      "install": "Install the .NET SDK from https://dotnet.microsoft.com/download"
+    }
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.csproj",
+    "workspaceContains:**/*.sln",
+    "workspaceContains:**/*.slnx",
+    "workspaceContains:**/*.cs"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "csharp",
+        "name": "C#",
+        "extensions": [
+          ".cs",
+          ".csx"
+        ],
+        "grammar": "grammars/csharp.tmLanguage.json",
+        "scopeName": "source.cs"
+      },
+      {
+        "id": "sln",
+        "name": "Solution",
+        "extensions": [
+          ".sln"
+        ],
+        "grammar": "grammars/sln.tmLanguage.json",
+        "scopeName": "source.sln"
+      },
+      {
+        "id": "slnx",
+        "name": "Solution (XML)",
+        "extensions": [
+          ".slnx"
+        ],
+        "grammar": "grammars/slnx.tmLanguage.json",
+        "scopeName": "text.xml.slnx"
+      },
+      {
+        "id": "msbuild",
+        "name": "MSBuild Project",
+        "extensions": [
+          ".csproj",
+          ".props",
+          ".targets"
+        ],
+        "grammar": "grammars/msbuild.tmLanguage.json",
+        "scopeName": "text.xml.msbuild"
+      }
+    ],
+    "previews": [
+      {
+        "id": "csharp.solutionPreview",
+        "label": "Solution",
+        "extensions": [
+          ".sln",
+          ".slnx"
+        ]
+      }
+    ],
+    "languageServer": {
+      "languages": [
+        "csharp"
+      ],
+      "command": "node",
+      "args": [
+        "server/launch.js",
+        "${setting:csharpLsPath}"
+      ]
+    },
+    "fileTemplates": [
+      {
+        "id": "csharp.class",
+        "label": "C# Class",
+        "kind": "file",
+        "extension": ".cs",
+        "placeholder": "MyClass"
+      },
+      {
+        "id": "csharp.interface",
+        "label": "C# Interface",
+        "kind": "file",
+        "extension": ".cs",
+        "placeholder": "IMyInterface"
+      },
+      {
+        "id": "csharp.record",
+        "label": "C# Record",
+        "kind": "file",
+        "extension": ".cs",
+        "placeholder": "MyRecord"
+      },
+      {
+        "id": "csharp.enum",
+        "label": "C# Enum",
+        "kind": "file",
+        "extension": ".cs",
+        "placeholder": "MyEnum"
+      }
+    ],
+    "commands": [
+      {
+        "id": "csharp.openProjectFile",
+        "title": "Open Project File (.csproj)"
+      },
+      {
+        "id": "csharp.refreshSolutionExplorer",
+        "title": "Refresh Solution Explorer"
+      },
+      {
+        "id": "csharp.build",
+        "title": "Build Solution (dotnet build)"
+      },
+      {
+        "id": "csharp.run",
+        "title": "Run Startup Project (dotnet run)"
+      },
+      {
+        "id": "csharp.installLanguageServer",
+        "title": "Install/Update csharp-ls"
+      }
+    ],
+    "buttons": [
+      {
+        "command": "csharp.build",
+        "title": "Build",
+        "icon": "build.svg"
+      },
+      {
+        "command": "csharp.run",
+        "title": "Run",
+        "icon": "run.svg"
+      }
+    ],
+    "runConfigurations": true,
+    "settings": [
+      {
+        "id": "csharpLsPath",
+        "label": "csharp-ls location",
+        "type": "file",
+        "default": "",
+        "description": "Leave empty to use the copy Saturn downloads automatically. Run \"Install/Update csharp-ls\" to reinstall or update it."
+      },
+      {
+        "id": "csharp.startupProject",
+        "label": "Startup project",
+        "type": "file",
+        "description": "The .csproj that Run starts. Leave empty to use the first executable project."
+      }
+    ],
+    "panels": [
+      {
+        "id": "csharp.solution",
+        "title": "Solution Explorer",
+        "dock": "left",
+        "icon": "solution-explorer.svg"
+      }
+    ],
+    "newProject": {
+      "language": "csharp",
+      "fields": [
+        {
+          "id": "template",
+          "label": "Template",
+          "type": "select",
+          "default": "console",
+          "options": [
+            {
+              "value": "console",
+              "label": "Console App"
+            },
+            {
+              "value": "classlib",
+              "label": "Class Library"
+            }
+          ]
+        },
+        {
+          "id": "framework",
+          "label": "Target framework",
+          "type": "select",
+          "default": "net10.0",
+          "options": [
+            {
+              "value": "net11.0",
+              "label": ".NET 11 (Preview)"
+            },
+            {
+              "value": "net10.0",
+              "label": ".NET 10 (LTS)"
+            },
+            {
+              "value": "net9.0",
+              "label": ".NET 9"
+            },
+            {
+              "value": "net8.0",
+              "label": ".NET 8 (LTS)"
+            }
+          ]
+        },
+        {
+          "id": "namespace",
+          "label": "Root namespace (blank: from folder name)",
+          "type": "text",
+          "default": ""
+        },
+        {
+          "id": "topLevel",
+          "label": "Use top-level statements",
+          "type": "checkbox",
+          "default": true
+        },
+        {
+          "id": "gitignore",
+          "label": "Create .gitignore",
+          "type": "checkbox",
+          "default": true
+        }
+      ]
+    }
+  }
+}
