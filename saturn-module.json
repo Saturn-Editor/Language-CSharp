@@ -1,0 +1,71 @@
+{
+  "id": "csharp",
+  "name": "C#",
+  "version": "1.0.0",
+  "description": "Language module for C# files (.cs)",
+  "badge": "C#",
+  "saturnApi": "^0.1",
+  "main": "module.js",
+  "activationEvents": [
+    "workspaceContains:**/*.csproj",
+    "workspaceContains:**/*.sln",
+    "workspaceContains:**/*.slnx",
+    "workspaceContains:**/*.cs"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "csharp",
+        "name": "C#",
+        "extensions": [".cs", ".csx"],
+        "grammar": "grammars/csharp.tmLanguage.json",
+        "scopeName": "source.cs"
+      }
+    ],
+    "languageServer": {
+      "languages": ["csharp"],
+      "command": "node",
+      "args": ["server/server.js", "--stdio"]
+    },
+    "fileTemplates": [
+      { "id": "csharp.class", "label": "C# Class", "kind": "file", "extension": ".cs", "placeholder": "MyClass" },
+      { "id": "csharp.interface", "label": "C# Interface", "kind": "file", "extension": ".cs", "placeholder": "IMyInterface" },
+      { "id": "csharp.record", "label": "C# Record", "kind": "file", "extension": ".cs", "placeholder": "MyRecord" },
+      { "id": "csharp.enum", "label": "C# Enum", "kind": "file", "extension": ".cs", "placeholder": "MyEnum" }
+    ],
+    "commands": [
+      { "id": "csharp.openProjectFile", "title": "Open Project File (.csproj)" },
+      { "id": "csharp.refreshSolutionExplorer", "title": "Refresh Solution Explorer" }
+    ],
+    "panels": [{ "id": "csharp.solution", "title": "Solution Explorer", "dock": "left", "badge": "C#" }],
+    "newProject": {
+      "language": "csharp",
+      "fields": [
+        {
+          "id": "template",
+          "label": "Template",
+          "type": "select",
+          "default": "console",
+          "options": [
+            { "value": "console", "label": "Console App" },
+            { "value": "classlib", "label": "Class Library" }
+          ]
+        },
+        {
+          "id": "framework",
+          "label": "Target framework",
+          "type": "select",
+          "default": "net10.0",
+          "options": [
+            { "value": "net10.0", "label": ".NET 10 (LTS)" },
+            { "value": "net9.0", "label": ".NET 9" },
+            { "value": "net8.0", "label": ".NET 8 (LTS)" }
+          ]
+        },
+        { "id": "namespace", "label": "Root namespace (blank: from folder name)", "type": "text", "default": "" },
+        { "id": "topLevel", "label": "Use top-level statements", "type": "checkbox", "default": true },
+        { "id": "gitignore", "label": "Create .gitignore", "type": "checkbox", "default": true }
+      ]
+    }
+  }
+}

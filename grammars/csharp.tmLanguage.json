@@ -1,0 +1,832 @@
+{
+  "name": "C#",
+  "scopeName": "source.cs",
+  "fileTypes": [
+    "cs",
+    "csx"
+  ],
+  "patterns": [
+    {
+      "include": "#code"
+    }
+  ],
+  "repository": {
+    "code": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#preprocessor"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#attribute"
+        },
+        {
+          "include": "#using-directive"
+        },
+        {
+          "include": "#namespace-declaration"
+        },
+        {
+          "include": "#type-declaration"
+        },
+        {
+          "include": "#object-creation"
+        },
+        {
+          "include": "#literals"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#function"
+        },
+        {
+          "include": "#types"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "begin": "///",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.cs"
+            }
+          },
+          "end": "$",
+          "name": "comment.block.documentation.cs",
+          "patterns": [
+            {
+              "match": "(</?)([A-Za-z]+)((?:\\s+[A-Za-z]+\\s*=\\s*\"[^\"]*\")*)\\s*(/?>)",
+              "captures": {
+                "1": {
+                  "name": "punctuation.definition.tag.cs"
+                },
+                "2": {
+                  "name": "entity.name.tag.cs"
+                },
+                "3": {
+                  "name": "entity.other.attribute-name.cs"
+                },
+                "4": {
+                  "name": "punctuation.definition.tag.cs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "begin": "//",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.cs"
+            }
+          },
+          "end": "$",
+          "name": "comment.line.double-slash.cs"
+        },
+        {
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.cs"
+            }
+          },
+          "name": "comment.block.cs"
+        }
+      ]
+    },
+    "preprocessor": {
+      "patterns": [
+        {
+          "match": "^\\s*(#)\\s*(region|endregion)\\b(.*)$",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.preprocessor.cs keyword.preprocessor.cs"
+            },
+            "2": {
+              "name": "keyword.preprocessor.cs"
+            },
+            "3": {
+              "name": "entity.name.section.cs comment.line.region.cs"
+            }
+          }
+        },
+        {
+          "begin": "^\\s*(#)\\s*(if|elif|else|endif|define|undef|pragma|nullable|line|error|warning)\\b",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.preprocessor.cs keyword.preprocessor.cs"
+            },
+            "2": {
+              "name": "keyword.preprocessor.cs"
+            }
+          },
+          "end": "(?=$|//)",
+          "name": "meta.preprocessor.cs",
+          "patterns": [
+            {
+              "match": "\\b(?:true|false)\\b",
+              "name": "constant.language.boolean.cs"
+            },
+            {
+              "match": "\\b(?:enable|disable|restore|warnings|annotations|default|hidden|checksum)\\b",
+              "name": "keyword.preprocessor.option.cs"
+            },
+            {
+              "match": "\\b[A-Za-z_]\\w*\\b",
+              "name": "entity.name.variable.preprocessor.symbol.cs variable.other.preprocessor.cs"
+            },
+            {
+              "match": "\"[^\"]*\"",
+              "name": "string.quoted.double.cs"
+            },
+            {
+              "match": "\\d+",
+              "name": "constant.numeric.cs"
+            },
+            {
+              "match": "&&|\\|\\||!|==|!=",
+              "name": "keyword.operator.logical.cs"
+            }
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "include": "#raw-interpolated-string"
+        },
+        {
+          "include": "#raw-string"
+        },
+        {
+          "include": "#verbatim-interpolated-string"
+        },
+        {
+          "include": "#interpolated-string"
+        },
+        {
+          "include": "#verbatim-string"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#char"
+        }
+      ]
+    },
+    "raw-interpolated-string": {
+      "patterns": [
+        {
+          "begin": "(\\$\\$+)(\"{3,})",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.cs"
+            }
+          },
+          "end": "\\2(u8)?",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.cs"
+            },
+            "1": {
+              "name": "storage.type.string.suffix.cs"
+            }
+          },
+          "name": "string.quoted.raw.interpolated.cs",
+          "patterns": [
+            {
+              "include": "#interpolation-double"
+            }
+          ]
+        },
+        {
+          "begin": "(\\$)(\"{3,})",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.cs"
+            }
+          },
+          "end": "\\2(u8)?",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.cs"
+            },
+            "1": {
+              "name": "storage.type.string.suffix.cs"
+            }
+          },
+          "name": "string.quoted.raw.interpolated.cs",
+          "patterns": [
+            {
+              "include": "#interpolation"
+            }
+          ]
+        }
+      ]
+    },
+    "raw-string": {
+      "begin": "(\"{3,})",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.cs"
+        }
+      },
+      "end": "\\1(u8)?",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.cs"
+        },
+        "1": {
+          "name": "storage.type.string.suffix.cs"
+        }
+      },
+      "name": "string.quoted.raw.cs"
+    },
+    "verbatim-interpolated-string": {
+      "begin": "(?:\\$@|@\\$)\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.cs"
+        }
+      },
+      "end": "\"(?!\")",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.cs"
+        }
+      },
+      "name": "string.quoted.double.verbatim.interpolated.cs",
+      "patterns": [
+        {
+          "match": "\"\"",
+          "name": "constant.character.escape.cs"
+        },
+        {
+          "match": "\\{\\{|\\}\\}",
+          "name": "constant.character.escape.cs"
+        },
+        {
+          "include": "#interpolation"
+        }
+      ]
+    },
+    "interpolated-string": {
+      "begin": "\\$\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.cs"
+        }
+      },
+      "end": "(\")|((?:[^\\\\\\n])$)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.string.end.cs"
+        },
+        "2": {
+          "name": "invalid.illegal.newline.cs"
+        }
+      },
+      "name": "string.quoted.double.interpolated.cs",
+      "patterns": [
+        {
+          "include": "#string-escape"
+        },
+        {
+          "match": "\\{\\{|\\}\\}",
+          "name": "constant.character.escape.cs"
+        },
+        {
+          "include": "#interpolation"
+        }
+      ]
+    },
+    "verbatim-string": {
+      "begin": "@\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.cs"
+        }
+      },
+      "end": "\"(?!\")",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.cs"
+        }
+      },
+      "name": "string.quoted.double.verbatim.cs",
+      "patterns": [
+        {
+          "match": "\"\"",
+          "name": "constant.character.escape.cs"
+        }
+      ]
+    },
+    "string": {
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.cs"
+        }
+      },
+      "end": "(\")(u8)?|((?:[^\\\\\\n])$)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.string.end.cs"
+        },
+        "2": {
+          "name": "storage.type.string.suffix.cs"
+        },
+        "3": {
+          "name": "invalid.illegal.newline.cs"
+        }
+      },
+      "name": "string.quoted.double.cs",
+      "patterns": [
+        {
+          "include": "#string-escape"
+        }
+      ]
+    },
+    "char": {
+      "match": "(')(?:\\\\(?:x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|.)|[^'\\\\])(')",
+      "name": "string.quoted.single.cs",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.char.begin.cs"
+        },
+        "2": {
+          "name": "punctuation.definition.char.end.cs"
+        }
+      }
+    },
+    "string-escape": {
+      "match": "\\\\(?:x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}|['\"\\\\0abefnrtv])",
+      "name": "constant.character.escape.cs"
+    },
+    "interpolation": {
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.interpolation.begin.cs"
+        }
+      },
+      "end": "(:[^{}\"]*)?(\\})",
+      "endCaptures": {
+        "1": {
+          "name": "constant.other.format-spec.cs"
+        },
+        "2": {
+          "name": "punctuation.definition.interpolation.end.cs"
+        }
+      },
+      "name": "meta.interpolation.cs",
+      "contentName": "meta.embedded.line.cs source.cs",
+      "patterns": [
+        {
+          "include": "#interpolation-braces"
+        },
+        {
+          "include": "#code"
+        }
+      ]
+    },
+    "interpolation-double": {
+      "begin": "\\{\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.interpolation.begin.cs"
+        }
+      },
+      "end": "(:[^{}\"]*)?(\\}\\})",
+      "endCaptures": {
+        "1": {
+          "name": "constant.other.format-spec.cs"
+        },
+        "2": {
+          "name": "punctuation.definition.interpolation.end.cs"
+        }
+      },
+      "name": "meta.interpolation.cs",
+      "contentName": "meta.embedded.line.cs source.cs",
+      "patterns": [
+        {
+          "include": "#interpolation-braces"
+        },
+        {
+          "include": "#code"
+        }
+      ]
+    },
+    "interpolation-braces": {
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.curlybrace.open.cs"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.curlybrace.close.cs"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#interpolation-braces"
+        },
+        {
+          "include": "#code"
+        }
+      ]
+    },
+    "attribute": {
+      "begin": "^\\s*(\\[)(?=\\s*(?:(?:assembly|module|field|event|method|param|property|return|type|typevar)\\s*:\\s*)?[A-Za-z_][\\w.]*\\s*(?:\\(|\\]|,))",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.squarebracket.open.cs"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.squarebracket.close.cs"
+        }
+      },
+      "name": "meta.attribute.cs",
+      "patterns": [
+        {
+          "match": "\\b(assembly|module|field|event|method|param|property|return|type|typevar)\\s*(:)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.attribute-specifier.cs"
+            },
+            "2": {
+              "name": "punctuation.separator.colon.cs"
+            }
+          }
+        },
+        {
+          "match": "(?<![\\w.])([A-Za-z_][\\w.]*)(?=\\s*(?:\\(|\\]|,))",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.attribute.cs"
+            }
+          }
+        },
+        {
+          "begin": "\\(",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.parenthesis.open.cs"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.parenthesis.close.cs"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#code"
+            }
+          ]
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.cs"
+        }
+      ]
+    },
+    "using-directive": {
+      "match": "^\\s*(?:(global)\\s+)?(using)\\s+(?:(static)\\s+)?(?:(@?[A-Za-z_]\\w*)\\s*(=)\\s*)?([A-Za-z_][\\w.]*)\\s*(?=;)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.global.cs"
+        },
+        "2": {
+          "name": "keyword.other.using.cs"
+        },
+        "3": {
+          "name": "storage.modifier.static.cs keyword.modifier.cs"
+        },
+        "4": {
+          "name": "entity.name.type.alias.cs"
+        },
+        "5": {
+          "name": "keyword.operator.assignment.cs"
+        },
+        "6": {
+          "name": "entity.name.namespace.cs"
+        }
+      }
+    },
+    "namespace-declaration": {
+      "match": "\\b(namespace)\\s+([A-Za-z_][\\w.]*)",
+      "captures": {
+        "1": {
+          "name": "storage.type.namespace.cs keyword.declaration.cs"
+        },
+        "2": {
+          "name": "entity.name.namespace.cs"
+        }
+      }
+    },
+    "type-declaration": {
+      "patterns": [
+        {
+          "match": "\\b(class)\\s+(@?[A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.cs keyword.declaration.cs"
+            },
+            "2": {
+              "name": "entity.name.type.class.cs"
+            }
+          }
+        },
+        {
+          "match": "\\b(struct)\\s+(@?[A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.cs keyword.declaration.cs"
+            },
+            "2": {
+              "name": "entity.name.type.struct.cs"
+            }
+          }
+        },
+        {
+          "match": "\\b(interface)\\s+(@?[A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.cs keyword.declaration.cs"
+            },
+            "2": {
+              "name": "entity.name.type.interface.cs"
+            }
+          }
+        },
+        {
+          "match": "\\b(enum)\\s+(@?[A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.cs keyword.declaration.cs"
+            },
+            "2": {
+              "name": "entity.name.type.enum.cs"
+            }
+          }
+        },
+        {
+          "match": "\\b(record\\s+struct)\\s+(@?[A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.cs keyword.declaration.cs"
+            },
+            "2": {
+              "name": "entity.name.type.struct.record.cs"
+            }
+          }
+        },
+        {
+          "match": "\\b(record(?:\\s+class)?)\\s+(@?[A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.cs keyword.declaration.cs"
+            },
+            "2": {
+              "name": "entity.name.type.class.record.cs"
+            }
+          }
+        }
+      ]
+    },
+    "object-creation": {
+      "match": "\\b(new)\\s+([A-Za-z_][\\w.]*)(?=\\s*[<(\\[{])",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.new.cs"
+        },
+        "2": {
+          "patterns": [
+            {
+              "match": "\\b(?:bool|byte|sbyte|char|decimal|double|float|int|uint|long|ulong|short|ushort|object|string|void|nint|nuint|var|dynamic)\\b",
+              "name": "storage.type.primitive.cs keyword.type.cs"
+            },
+            {
+              "match": "\\w+",
+              "name": "entity.name.type.cs"
+            }
+          ]
+        }
+      }
+    },
+    "literals": {
+      "patterns": [
+        {
+          "match": "\\b(?:true|false)\\b",
+          "name": "constant.language.boolean.cs"
+        },
+        {
+          "match": "\\bnull\\b",
+          "name": "constant.language.null.cs"
+        },
+        {
+          "match": "\\b0[xX][0-9A-Fa-f_]+(?:[uU][lL]?|[lL][uU]?)?\\b",
+          "name": "constant.numeric.hex.cs"
+        },
+        {
+          "match": "\\b0[bB][01_]+(?:[uU][lL]?|[lL][uU]?)?\\b",
+          "name": "constant.numeric.binary.cs"
+        },
+        {
+          "match": "(?<![\\w.])(?:[0-9][0-9_]*(?:\\.[0-9][0-9_]*)?|\\.[0-9][0-9_]*)(?:[eE][+-]?[0-9_]+)?(?:[fFdDmM]|[uU][lL]?|[lL][uU]?)?\\b",
+          "name": "constant.numeric.decimal.cs"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "match": "\\b(?:if|else|switch|case|default|for|foreach|in|while|do|break|continue|return|goto|yield|throw|try|catch|finally|when|await|lock)\\b",
+          "name": "keyword.control.cs"
+        },
+        {
+          "match": "\\b(?:using|fixed|unsafe|checked|unchecked)\\b(?=\\s*[({])",
+          "name": "keyword.control.cs"
+        },
+        {
+          "match": "\\b(?:new|typeof|sizeof|nameof|is|as|stackalloc|checked|unchecked|with|and|or|not)\\b",
+          "name": "keyword.operator.expression.cs"
+        },
+        {
+          "match": "\\b(?:public|private|protected|internal|static|readonly|const|sealed|abstract|virtual|override|extern|unsafe|volatile|async|partial|required|file|scoped|ref|out|params|fixed|implicit|explicit|operator|in)\\b",
+          "name": "storage.modifier.cs keyword.modifier.cs"
+        },
+        {
+          "match": "\\b(?:class|struct|interface|enum|record|delegate|event|namespace)\\b",
+          "name": "storage.type.cs keyword.declaration.cs"
+        },
+        {
+          "match": "\\b(?:this|base)\\b",
+          "name": "variable.language.this.cs keyword.other.this.cs"
+        },
+        {
+          "match": "\\bvalue\\b(?=\\s*[;.)\\],?=!<>+\\-*/%&|^])",
+          "name": "variable.language.value.cs"
+        },
+        {
+          "match": "\\b(?:bool|byte|sbyte|char|decimal|double|float|int|uint|long|ulong|short|ushort|object|string|void|nint|nuint|var|dynamic)\\b",
+          "name": "storage.type.primitive.cs keyword.type.cs"
+        },
+        {
+          "match": "\\busing\\b",
+          "name": "keyword.other.using.cs"
+        },
+        {
+          "match": "\\b(?:get|set|init|add|remove|where|select|from|orderby|group|by|into|join|let|on|equals|ascending|descending|global|notnull|unmanaged|managed|allows)\\b(?=\\s*(?:[;{:]|=>|[A-Za-z_]))",
+          "name": "keyword.other.contextual.cs"
+        }
+      ]
+    },
+    "function": {
+      "match": "(?<![\\w@])(?!\\b(?:if|else|switch|case|default|for|foreach|in|while|do|break|continue|return|goto|yield|throw|try|catch|finally|when|await|lock|new|typeof|sizeof|nameof|is|as|stackalloc|checked|unchecked|with|and|or|not|public|private|protected|internal|static|readonly|const|sealed|abstract|virtual|override|extern|unsafe|volatile|async|partial|required|file|scoped|ref|out|params|fixed|implicit|explicit|operator|class|struct|interface|enum|record|delegate|event|namespace|bool|byte|sbyte|char|decimal|double|float|int|uint|long|ulong|short|ushort|object|string|void|nint|nuint|var|dynamic|using|fixed|default|base|this)\\b)(@?[A-Za-z_][A-Za-z0-9_]*)\\s*(?=(?:<(?:[^<>()]|<(?:[^<>()]|<[^<>()]*>)*>)*>)?\\s*\\()",
+      "captures": {
+        "1": {
+          "name": "entity.name.function.cs"
+        }
+      }
+    },
+    "types": {
+      "patterns": [
+        {
+          "match": "(?<![\\w@.])(?:([A-Za-z_][\\w]*)(\\.))*([A-Z]\\w*)(?=\\s*<(?:[^<>()]|<(?:[^<>()]|<[^<>()]*>)*>)*>(?!\\s*\\())",
+          "captures": {
+            "3": {
+              "name": "entity.name.type.cs"
+            }
+          }
+        },
+        {
+          "match": "(?<![\\w@.])([A-Z]\\w*)(?=\\??(?:\\[,*\\])*\\??\\s+@?[A-Za-z_]\\w*\\s*(?:[=;,)]|=>|\\{|:|\\bin\\b|$))",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.cs"
+            }
+          }
+        },
+        {
+          "match": "(?<=<|,\\s|<\\s|:\\s|\\(\\s?)([A-Z]\\w*)(?=\\s*(?:[>,]|\\{|$|\\bwhere\\b))",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.cs"
+            }
+          }
+        },
+        {
+          "match": "(?<=\\b(?:typeof|nameof|sizeof|default)\\()\\s*([A-Za-z_][\\w.]*)(?=\\s*\\))",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.cs"
+            }
+          }
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "match": "=>",
+          "name": "keyword.operator.arrow.cs"
+        },
+        {
+          "match": "\\?\\?=?|\\?\\.|\\?(?=\\[)",
+          "name": "keyword.operator.null-coalescing.cs"
+        },
+        {
+          "match": "<<=|>>>=|>>=|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=",
+          "name": "keyword.operator.assignment.compound.cs"
+        },
+        {
+          "match": "==|!=|<=|>=",
+          "name": "keyword.operator.comparison.cs"
+        },
+        {
+          "match": "&&|\\|\\||!(?!=)",
+          "name": "keyword.operator.logical.cs"
+        },
+        {
+          "match": "\\+\\+|--",
+          "name": "keyword.operator.increment.cs"
+        },
+        {
+          "match": "<<|>>>|>>|[&|^~]",
+          "name": "keyword.operator.bitwise.cs"
+        },
+        {
+          "match": "=",
+          "name": "keyword.operator.assignment.cs"
+        },
+        {
+          "match": "[+\\-*/%]",
+          "name": "keyword.operator.arithmetic.cs"
+        },
+        {
+          "match": "\\.\\.",
+          "name": "keyword.operator.range.cs"
+        },
+        {
+          "match": "[<>?:]",
+          "name": "keyword.operator.cs"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": ";",
+          "name": "punctuation.terminator.statement.cs"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.cs"
+        },
+        {
+          "match": "\\.",
+          "name": "punctuation.accessor.cs"
+        },
+        {
+          "match": "[{}]",
+          "name": "punctuation.curlybrace.cs"
+        },
+        {
+          "match": "[()]",
+          "name": "punctuation.parenthesis.cs"
+        },
+        {
+          "match": "[\\[\\]]",
+          "name": "punctuation.squarebracket.cs"
+        }
+      ]
+    }
+  }
+}
