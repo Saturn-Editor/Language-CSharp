@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { basename, dirname, extname, join, relative, sep } from 'node:path';
 import { KEYWORDS, PRIMITIVE_TYPES } from './lib/csharp.js';
 import { install as installCsharpLs, isInstalled as csharpLsInstalled } from './lib/csharpls.js';
@@ -101,6 +102,34 @@ const byDepth = (projectPath) => (a, b) =>
   relative(projectPath, a).split(sep).length - relative(projectPath, b).split(sep).length ||
   relative(projectPath, a).localeCompare(relative(projectPath, b));
 
+const CSHARP_PROJECT_TYPE = '{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}';
+
+/** A classic .sln with one C# project and Debug/Release configurations. */
+function sln(name, projectRel) {
+  const id = `{${randomUUID().toUpperCase()}}`;
+  const configs = ['Debug|Any CPU', 'Release|Any CPU'];
+  return [
+    '',
+    'Microsoft Visual Studio Solution File, Format Version 12.00',
+    '# Visual Studio Version 17',
+    'VisualStudioVersion = 17.0.31903.59',
+    'MinimumVisualStudioVersion = 10.0.40219.1',
+    `Project("${CSHARP_PROJECT_TYPE}") = "${name}", "${projectRel.split(sep).join('\\')}", "${id}"`,
+    'EndProject',
+    'Global',
+    '\tGlobalSection(SolutionConfigurationPlatforms) = preSolution',
+    ...configs.map((c) => `\t\t${c} = ${c}`),
+    '\tEndGlobalSection',
+    '\tGlobalSection(ProjectConfigurationPlatforms) = postSolution',
+    ...configs.flatMap((c) => [`\t\t${id}.${c}.ActiveCfg = ${c}`, `\t\t${id}.${c}.Build.0 = ${c}`]),
+    '\tEndGlobalSection',
+    'EndGlobal',
+    '',
+  ].join('\r\n');
+}
+
+const slnx = (projectRel) => `<Solution>\n  <Project Path="${projectRel.split(sep).join('/')}" />\n</Solution>\n`;
+
 let disposeExplorer = () => {};
 
 const previewCss = readFileSync(new URL('./preview.css', import.meta.url), 'utf8');
@@ -139,17 +168,27 @@ export function activate(saturn) {
     const rootNamespace = namespaceOf(String(fields.namespace ?? '').trim() || projectName) || identifier(projectName);
     const ns = { namespace: rootNamespace, fileScoped: true };
 
-    mkdirSync(projectPath, { recursive: true });
-    writeIfMissing(join(projectPath, `${projectName}.csproj`), csproj({ template, framework, rootNamespace, projectName }));
+    const format = saturn.settings?.get?.('csharp.solutionFormat') === 'sln' ? 'sln' : 'slnx';
+    const solution = fields.solution === 'none' ? null : fields.solution === 'sln' || fields.solution === 'slnx' ? fields.solution : format;
+    // Like Visual Studio: with a solution, the project gets its own folder unless asked otherwise.
+    const projectDir = solution && fields.sameDir !== true ? join(projectPath, projectName) : projectPath;
+    const projectFile = join(projectDir, `${projectName}.csproj`);
+
+    mkdirSync(projectDir, { recursive: true });
+    writeIfMissing(projectFile, csproj({ template, framework, rootNamespace, projectName }));
+    if (solution) {
+      const rel = relative(projectPath, projectFile);
+      writeIfMissing(join(projectPath, `${projectName}.${solution}`), solution === 'sln' ? sln(projectName, rel) : slnx(rel));
+    }
 
     if (template === 'console') {
       const program =
         fields.topLevel !== false
           ? 'Console.WriteLine("Hello, World!");\n'
           : wrapInNamespace(ns, 'internal class Program\n{\n    static void Main(string[] args)\n    {\n        Console.WriteLine("Hello, World!");\n    }\n}');
-      writeIfMissing(join(projectPath, 'Program.cs'), program);
+      writeIfMissing(join(projectDir, 'Program.cs'), program);
     } else {
-      writeIfMissing(join(projectPath, 'Class1.cs'), wrapInNamespace(ns, 'public class Class1\n{\n}'));
+      writeIfMissing(join(projectDir, 'Class1.cs'), wrapInNamespace(ns, 'public class Class1\n{\n}'));
     }
 
     if (fields.gitignore !== false) writeIfMissing(join(projectPath, '.gitignore'), GITIGNORE);
@@ -157,8 +196,8 @@ export function activate(saturn) {
 }
 
 /**
- * Downloads csharp-ls into module storage in the background so it's ready before the server first starts,
- * and registers csharp.installLanguageServer to install or update it on demand.
+ * Downloads csharp-ls into module storage in the background when a C# project first opens, so it's ready
+ * before the server starts, and registers csharp.installLanguageServer to install or update it on demand.
  */
 function registerLanguageServerSetup(saturn) {
   const storage = saturn.storagePath;
@@ -192,8 +231,20 @@ function registerLanguageServerSetup(saturn) {
   }
 
   saturn.commands.register('csharp.installLanguageServer', () => setup({ update: true }));
-  const custom = String(saturn.settings?.get?.('csharpLsPath') ?? '').trim();
-  if (storage && !custom && !csharpLsInstalled(storage)) setup();
+  // Saturn activates every module at startup, so download on the first C# project instead. Without an
+  // open event, the server launcher downloads on first use.
+  let started = false;
+  saturn.projects.onDidOpen?.(async ({ projectPath }) => {
+    const custom = String(saturn.settings?.get?.('csharpLsPath') ?? '').trim();
+    if (started || !storage || custom || csharpLsInstalled(storage)) return;
+    for (const glob of ['**/*.csproj', '**/*.slnx', '**/*.sln', '**/*.cs']) {
+      if ((await saturn.workspace.findFiles(projectPath, glob)).length) {
+        if (started) return;
+        started = true;
+        return setup();
+      }
+    }
+  });
 }
 
 export function deactivate() {

@@ -2,7 +2,7 @@
   "id": "csharp",
   "name": "C# .NET",
   "badge": "C#",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Language module for C#/.NET projects",
   "saturnApi": "^0.2",
   "main": "module.js",
@@ -71,7 +71,8 @@
         "extensions": [
           ".sln",
           ".slnx"
-        ]
+        ],
+        "defaultView": "preview"
       }
     ],
     "languageServer": {
@@ -82,6 +83,17 @@
       "args": [
         "server/launch.js",
         "${setting:csharpLsPath}"
+      ],
+      "features": [
+        "completion",
+        "diagnostics",
+        "hover",
+        "definition",
+        "symbols",
+        "references",
+        "rename",
+        "formatting",
+        "signatureHelp"
       ]
     },
     "fileTemplates": [
@@ -158,10 +170,34 @@
         "description": "Leave empty to use the copy Saturn downloads automatically. Run \"Install/Update csharp-ls\" to reinstall or update it."
       },
       {
+        "id": "netcoredbgPath",
+        "label": "netcoredbg location",
+        "type": "file",
+        "default": "",
+        "description": "Leave empty to download netcoredbg automatically (Windows x64, Linux, Apple Silicon Macs). On other machines, such as Intel Macs, build it from https://github.com/Samsung/netcoredbg and point this at the netcoredbg binary."
+      },
+      {
         "id": "csharp.startupProject",
         "label": "Startup project",
         "type": "file",
         "description": "The .csproj that Run starts. Leave empty to use the first executable project."
+      },
+      {
+        "id": "csharp.solutionFormat",
+        "label": "Default solution format",
+        "type": "select",
+        "default": "slnx",
+        "options": [
+          {
+            "value": "slnx",
+            "label": ".slnx (XML)"
+          },
+          {
+            "value": "sln",
+            "label": ".sln (classic)"
+          }
+        ],
+        "description": "The solution format new C# projects use by default."
       }
     ],
     "panels": [
@@ -216,6 +252,32 @@
           ]
         },
         {
+          "id": "solution",
+          "label": "Solution",
+          "type": "select",
+          "default": "${setting:csharp.solutionFormat}",
+          "options": [
+            {
+              "value": "slnx",
+              "label": "Solution (.slnx)"
+            },
+            {
+              "value": "sln",
+              "label": "Solution (.sln, classic)"
+            },
+            {
+              "value": "none",
+              "label": "No solution"
+            }
+          ]
+        },
+        {
+          "id": "sameDir",
+          "label": "Place solution and project in the same folder",
+          "type": "checkbox",
+          "default": false
+        },
+        {
           "id": "namespace",
           "label": "Root namespace (blank: from folder name)",
           "type": "text",
@@ -234,6 +296,26 @@
           "default": true
         }
       ]
+    },
+    "debugger": {
+      "label": ".NET",
+      "languages": [
+        "csharp"
+      ],
+      "command": "node",
+      "args": [
+        "server/debug.js",
+        "${setting:netcoredbgPath}"
+      ],
+      "launch": {
+        "type": "coreclr",
+        "request": "launch",
+        "cwd": "${project}",
+        "project": "${setting:csharp.startupProject}",
+        "console": "internalConsole",
+        "stopAtEntry": false,
+        "justMyCode": true
+      }
     }
   }
 }
