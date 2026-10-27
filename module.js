@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { randomUUID } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, sep } from 'node:path';
 import { KEYWORDS, PRIMITIVE_TYPES } from './lib/csharp.js';
 import { install as installCsharpLs, isInstalled as csharpLsInstalled } from './lib/csharpls.js';
 import { registerDotnetCommands, stopAll } from './lib/dotnet.js';
 import { registerSolutionExplorer } from './lib/explorer.js';
 import { renderSolution } from './lib/preview.js';
+import { createProject } from './lib/templates.js';
 
 const RESERVED = new Set([...KEYWORDS, ...PRIMITIVE_TYPES]);
 
@@ -80,55 +80,10 @@ const TEMPLATES = {
   'csharp.enum': (type) => `public enum ${type}\n{\n}`,
 };
 
-function writeIfMissing(path, content) {
-  if (!existsSync(path)) writeFileSync(path, content);
-}
-
-function csproj({ template, framework, rootNamespace, projectName }) {
-  const props = [
-    template === 'console' ? '    <OutputType>Exe</OutputType>' : null,
-    `    <TargetFramework>${framework}</TargetFramework>`,
-    rootNamespace !== identifier(projectName) ? `    <RootNamespace>${rootNamespace}</RootNamespace>` : null,
-    '    <ImplicitUsings>enable</ImplicitUsings>',
-    '    <Nullable>enable</Nullable>',
-  ].filter(Boolean);
-  return `<Project Sdk="Microsoft.NET.Sdk">\n\n  <PropertyGroup>\n${props.join('\n')}\n  </PropertyGroup>\n\n</Project>\n`;
-}
-
-const GITIGNORE = 'bin/\nobj/\n.vs/\n*.user\n*.suo\nTestResults/\n';
-
 /** Shallowest match first, so the root project wins over nested ones. */
 const byDepth = (projectPath) => (a, b) =>
   relative(projectPath, a).split(sep).length - relative(projectPath, b).split(sep).length ||
   relative(projectPath, a).localeCompare(relative(projectPath, b));
-
-const CSHARP_PROJECT_TYPE = '{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}';
-
-/** A classic .sln with one C# project and Debug/Release configurations. */
-function sln(name, projectRel) {
-  const id = `{${randomUUID().toUpperCase()}}`;
-  const configs = ['Debug|Any CPU', 'Release|Any CPU'];
-  return [
-    '',
-    'Microsoft Visual Studio Solution File, Format Version 12.00',
-    '# Visual Studio Version 17',
-    'VisualStudioVersion = 17.0.31903.59',
-    'MinimumVisualStudioVersion = 10.0.40219.1',
-    `Project("${CSHARP_PROJECT_TYPE}") = "${name}", "${projectRel.split(sep).join('\\')}", "${id}"`,
-    'EndProject',
-    'Global',
-    '\tGlobalSection(SolutionConfigurationPlatforms) = preSolution',
-    ...configs.map((c) => `\t\t${c} = ${c}`),
-    '\tEndGlobalSection',
-    '\tGlobalSection(ProjectConfigurationPlatforms) = postSolution',
-    ...configs.flatMap((c) => [`\t\t${id}.${c}.ActiveCfg = ${c}`, `\t\t${id}.${c}.Build.0 = ${c}`]),
-    '\tEndGlobalSection',
-    'EndGlobal',
-    '',
-  ].join('\r\n');
-}
-
-const slnx = (projectRel) => `<Solution>\n  <Project Path="${projectRel.split(sep).join('/')}" />\n</Solution>\n`;
 
 let disposeExplorer = () => {};
 
@@ -161,38 +116,7 @@ export function activate(saturn) {
     saturn.window?.showMessage?.('No .csproj, .slnx or .sln file found in this project.', { kind: 'warning', projectPath });
   });
 
-  saturn.projects.onCreate(({ projectPath, fields }) => {
-    const projectName = basename(projectPath);
-    const template = fields.template === 'classlib' ? 'classlib' : 'console';
-    const framework = String(fields.framework ?? '').trim() || 'net10.0';
-    const rootNamespace = namespaceOf(String(fields.namespace ?? '').trim() || projectName) || identifier(projectName);
-    const ns = { namespace: rootNamespace, fileScoped: true };
-
-    const format = saturn.settings?.get?.('csharp.solutionFormat') === 'sln' ? 'sln' : 'slnx';
-    const solution = fields.solution === 'none' ? null : fields.solution === 'sln' || fields.solution === 'slnx' ? fields.solution : format;
-    // Like Visual Studio: with a solution, the project gets its own folder unless asked otherwise.
-    const projectDir = solution && fields.sameDir !== true ? join(projectPath, projectName) : projectPath;
-    const projectFile = join(projectDir, `${projectName}.csproj`);
-
-    mkdirSync(projectDir, { recursive: true });
-    writeIfMissing(projectFile, csproj({ template, framework, rootNamespace, projectName }));
-    if (solution) {
-      const rel = relative(projectPath, projectFile);
-      writeIfMissing(join(projectPath, `${projectName}.${solution}`), solution === 'sln' ? sln(projectName, rel) : slnx(rel));
-    }
-
-    if (template === 'console') {
-      const program =
-        fields.topLevel !== false
-          ? 'Console.WriteLine("Hello, World!");\n'
-          : wrapInNamespace(ns, 'internal class Program\n{\n    static void Main(string[] args)\n    {\n        Console.WriteLine("Hello, World!");\n    }\n}');
-      writeIfMissing(join(projectDir, 'Program.cs'), program);
-    } else {
-      writeIfMissing(join(projectDir, 'Class1.cs'), wrapInNamespace(ns, 'public class Class1\n{\n}'));
-    }
-
-    if (fields.gitignore !== false) writeIfMissing(join(projectPath, '.gitignore'), GITIGNORE);
-  });
+  saturn.projects.onCreate((ctx) => createProject(ctx));
 }
 
 /**

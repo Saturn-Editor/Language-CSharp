@@ -2,7 +2,7 @@
   "id": "csharp",
   "name": "C# .NET",
   "badge": "C#",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Language module for C#/.NET projects",
   "saturnApi": "^0.2",
   "main": "module.js",
@@ -186,18 +186,35 @@
         "id": "csharp.solutionFormat",
         "label": "Default solution format",
         "type": "select",
-        "default": "slnx",
+        "default": "sln",
         "options": [
-          {
-            "value": "slnx",
-            "label": ".slnx (XML)"
-          },
           {
             "value": "sln",
             "label": ".sln (classic)"
+          },
+          {
+            "value": "slnx",
+            "label": ".slnx (XML)"
           }
         ],
         "description": "The solution format new C# projects use by default."
+      },
+      {
+        "id": "csharp.debugConsole",
+        "label": "Debug console",
+        "type": "select",
+        "default": "integratedTerminal",
+        "options": [
+          {
+            "value": "integratedTerminal",
+            "label": "Integrated terminal (supports input)"
+          },
+          {
+            "value": "internalConsole",
+            "label": "Debug console (output only)"
+          }
+        ],
+        "description": "Where a debugged program's console runs. Use the integrated terminal to type into Console.ReadLine."
       }
     ],
     "panels": [
@@ -210,20 +227,92 @@
     ],
     "newProject": {
       "language": "csharp",
+      "tabs": [
+        {
+          "id": "empty",
+          "label": "Empty solution",
+          "templates": [
+            { "id": "sln", "label": "Empty solution", "description": "A solution with no projects." }
+          ]
+        },
+        {
+          "id": "dotnet",
+          "label": ".NET",
+          "templates": [
+            { "id": "console", "label": "Console App", "description": "A command-line application." },
+            { "id": "classlib", "label": "Class Library", "description": "A library of reusable code." },
+            { "id": "worker", "label": "Worker Service", "description": "A long-running background service." },
+            { "id": "mcpserver", "label": "MCP Server App", "description": "A Model Context Protocol server." },
+            { "id": "nunit", "label": "NUnit Test Project", "description": "Unit tests with NUnit." },
+            { "id": "nunit-playwright", "label": "NUnit Playwright Test Project", "description": "Browser tests with NUnit and Playwright." },
+            { "id": "mstest", "label": "MSTest Test Project", "description": "Unit tests with MSTest." },
+            { "id": "mstest-playwright", "label": "MSTest Playwright Test Project", "description": "Browser tests with MSTest and Playwright." },
+            { "id": "xunit", "label": "xUnit Test Project", "description": "Unit tests with xUnit." },
+            { "id": "winforms", "label": "Windows Forms App", "description": "A Windows Forms desktop app. Builds on Windows only." },
+            { "id": "winformslib", "label": "Windows Forms Class Library", "description": "Windows only." },
+            { "id": "winformscontrollib", "label": "Windows Forms Control Library", "description": "Windows only." },
+            { "id": "wpf", "label": "WPF Application", "description": "A WPF desktop app. Builds on Windows only." },
+            { "id": "wpflib", "label": "WPF Class Library", "description": "Windows only." },
+            { "id": "wpfcustomcontrollib", "label": "WPF Custom Control Library", "description": "Windows only." },
+            { "id": "wpfusercontrollib", "label": "WPF User Control Library", "description": "Windows only." }
+          ]
+        },
+        {
+          "id": "web",
+          "label": "Web",
+          "templates": [
+            { "id": "blazor", "label": "Blazor Web App", "description": "Server and WebAssembly rendering with Blazor." },
+            { "id": "blazorwasm", "label": "Blazor WebAssembly Standalone App", "description": "A Blazor app that runs entirely in the browser." },
+            { "id": "web", "label": "Empty", "description": "An empty ASP.NET Core app." },
+            { "id": "razorclasslib", "label": "Razor Class Library", "description": "Reusable Razor components, pages and views." },
+            { "id": "webapi", "label": "Web API", "description": "A RESTful HTTP service." },
+            { "id": "webapiaot", "label": "Web API (native AOT)", "description": "A Web API compiled ahead of time to native code." },
+            { "id": "mvc", "label": "Web App (Model-View-Controller)", "description": "An ASP.NET Core MVC app." },
+            { "id": "webapp", "label": "Web App (Razor Pages)", "description": "An ASP.NET Core app with Razor Pages." },
+            { "id": "grpc", "label": "gRPC Service", "description": "A gRPC server." }
+          ]
+        },
+        {
+          "id": "maui",
+          "label": "MAUI",
+          "templates": [
+            { "id": "maui", "label": "App", "description": "A cross-platform app for Android, iOS, macOS and Windows." },
+            { "id": "mauilib", "label": "Class Library", "description": "A library for .NET MAUI apps." },
+            { "id": "maui-blazor", "label": "Blazor Hybrid App", "description": "A MAUI app with a Blazor UI." },
+            { "id": "maui-blazor-web", "label": "Blazor Hybrid and Web App", "description": "A Blazor UI shared between a MAUI app and a web app." },
+            { "id": "maui-multiproject", "label": "Multi-Project App", "description": "A MAUI app with a separate project per platform." },
+            { "id": "maui-aspire-servicedefaults", "label": "Aspire Service Defaults", "description": "Aspire service defaults for MAUI apps." },
+            { "id": "android", "label": "Android Application", "description": "A native .NET for Android app." },
+            { "id": "androidlib", "label": "Android Class Library", "description": "A native .NET for Android library." },
+            { "id": "android-bindinglib", "label": "Android Java Library Binding", "description": "Bindings for a Java or Kotlin library." },
+            { "id": "androidwear", "label": "Android Wear Application", "description": "A native Wear OS app." },
+            { "id": "ios", "label": "iOS Application", "description": "A native .NET for iOS app." },
+            { "id": "ios-tabbed", "label": "iOS Tabbed Application", "description": "A native iOS app with tabs." },
+            { "id": "ioslib", "label": "iOS Class Library", "description": "A native .NET for iOS library." },
+            { "id": "iosbinding", "label": "iOS Binding Library", "description": "Bindings for an Objective-C library." },
+            { "id": "ios-notification-content-extension", "label": "iOS Notification Content Extension", "description": "Custom UI for iOS notifications." },
+            { "id": "ios-notification-service-extension", "label": "iOS Notification Service Extension", "description": "Modifies iOS notifications before they show." },
+            { "id": "maccatalyst", "label": "Mac Catalyst Application", "description": "A native Mac Catalyst app." },
+            { "id": "maccatalystlib", "label": "Mac Catalyst Class Library", "description": "A native Mac Catalyst library." },
+            { "id": "maccatalystbinding", "label": "Mac Catalyst Binding Library", "description": "Bindings for an Objective-C library." }
+          ]
+        }
+      ],
       "fields": [
         {
-          "id": "template",
-          "label": "Template",
+          "id": "emptyFormat",
+          "label": "Solution format",
           "type": "select",
-          "default": "console",
+          "default": "${setting:csharp.solutionFormat}",
+          "when": { "tab": ["empty"] },
           "options": [
             {
-              "value": "console",
-              "label": "Console App"
+              "value": "sln",
+              "label": "Solution (.sln, classic)"
             },
             {
-              "value": "classlib",
-              "label": "Class Library"
+              "value": "slnx",
+              "label": "Solution (.slnx)"
             }
           ]
         },
@@ -232,6 +321,7 @@
           "label": "Target framework",
           "type": "select",
           "default": "net10.0",
+          "when": { "tab": ["dotnet", "web", "maui"] },
           "options": [
             {
               "value": "net11.0",
@@ -256,14 +346,15 @@
           "label": "Solution",
           "type": "select",
           "default": "${setting:csharp.solutionFormat}",
+          "when": { "tab": ["dotnet", "web", "maui"] },
           "options": [
-            {
-              "value": "slnx",
-              "label": "Solution (.slnx)"
-            },
             {
               "value": "sln",
               "label": "Solution (.sln, classic)"
+            },
+            {
+              "value": "slnx",
+              "label": "Solution (.slnx)"
             },
             {
               "value": "none",
@@ -275,19 +366,15 @@
           "id": "sameDir",
           "label": "Place solution and project in the same folder",
           "type": "checkbox",
-          "default": false
-        },
-        {
-          "id": "namespace",
-          "label": "Root namespace (blank: from folder name)",
-          "type": "text",
-          "default": ""
+          "default": false,
+          "when": { "tab": ["dotnet", "web", "maui"] }
         },
         {
           "id": "topLevel",
           "label": "Use top-level statements",
           "type": "checkbox",
-          "default": true
+          "default": true,
+          "when": { "template": ["console", "worker", "blazor", "blazorwasm", "web", "webapi", "webapiaot", "mvc", "webapp", "grpc", "maui-blazor-web"] }
         },
         {
           "id": "gitignore",
@@ -312,7 +399,7 @@
         "request": "launch",
         "cwd": "${project}",
         "project": "${setting:csharp.startupProject}",
-        "console": "internalConsole",
+        "console": "${setting:csharp.debugConsole}",
         "stopAtEntry": false,
         "justMyCode": true
       }

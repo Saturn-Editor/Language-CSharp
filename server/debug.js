@@ -1,9 +1,14 @@
 /**
  * Debug adapter for Saturn: a DAP proxy in front of netcoredbg. On `launch` without a `program`, it builds
- * the startup project and fills in its output assembly. netcoredbg comes from argv[2] when set, otherwise
- * from module storage (downloaded on first use).
+ * the startup project and fills in its output assembly. With "console": "integratedTerminal" it runs the
+ * program in Saturn's terminal via runInTerminal (so it can read input) and attaches to it, since netcoredbg
+ * can't do that itself. netcoredbg comes from argv[2] when set, otherwise from module storage (downloaded on
+ * first use).
  */
 import { spawn } from 'node:child_process';
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
+import { listenForRuntime } from '../lib/diagport.js';
 import { binaryPath, install, isInstalled } from '../lib/netcoredbg.js';
 import { runTarget } from '../lib/dotnet.js';
 
@@ -83,10 +88,78 @@ process.stdout.on('error', () => process.exit(0)); // client went away
 
 let adapter = null;
 let startError = null;
+let supportsRunInTerminal = false;
+const reverseRequests = new Map(); // our seq → resolve, for requests we send the client
+const renamedResponses = new Map(); // request seq → command the client asked for (launch sent on as attach)
+
+function fromAdapter(message) {
+  if (message.type === 'response' && renamedResponses.has(message.request_seq)) {
+    message = { ...message, command: renamedResponses.get(message.request_seq) };
+    renamedResponses.delete(message.request_seq);
+  }
+  process.stdout.write(encode(message));
+}
+
+/**
+ * Builds the startup hook (server/hook) into module storage on first use and returns its path. It holds the
+ * program before Main until the debugger attaches.
+ */
+async function startupHook() {
+  if (!storage) throw new Error('SATURN_MODULE_STORAGE is not set.');
+  const dir = join(storage, 'debug-hook');
+  const dll = join(dir, 'bin', 'SaturnDebugHook.dll');
+  const source = new URL('./hook/', import.meta.url);
+  const files = ['StartupHook.cs', 'SaturnDebugHook.csproj'];
+  const current = existsSync(dll) && files.every((f) => existsSync(join(dir, 'src', f)) && readFileSync(join(dir, 'src', f), 'utf8') === readFileSync(new URL(f, source), 'utf8'));
+  if (current) return dll;
+  mkdirSync(join(dir, 'src'), { recursive: true });
+  for (const f of files) copyFileSync(new URL(f, source), join(dir, 'src', f));
+  output('Preparing the debugger for terminal input…\n');
+  const built = await dotnet(['build', join(dir, 'src', 'SaturnDebugHook.csproj'), '-c', 'Release', '-nologo', '-o', join(dir, 'bin')], dir);
+  if (built.code !== 0 || !existsSync(dll)) throw new Error(`building the startup hook failed\n${built.text.trim().split(/\r?\n/).slice(-3).join('\n')}`);
+  return dll;
+}
+
+function requestClient(command, args) {
+  const id = seq;
+  toClient({ type: 'request', command, arguments: args });
+  return new Promise((resolve) => reverseRequests.set(id, resolve));
+}
+
+/**
+ * Starts the program in Saturn's terminal so it can read input, held before Main by the startup hook, and turns
+ * the launch into an attach to it (netcoredbg can't run a program in a terminal itself). The diagnostic port
+ * tells us its PID. Returns the attach request, or null to fall back to a plain launch.
+ */
+async function launchInTerminal(request, args) {
+  let port = null;
+  try {
+    const hook = await startupHook();
+    port = await listenForRuntime();
+    const response = await requestClient('runInTerminal', {
+      kind: 'integrated',
+      title: basename(args.program, '.dll'),
+      cwd: args.cwd || dirname(args.program),
+      args: ['dotnet', args.program, ...(args.args ?? [])],
+      env: { ...(args.env ?? {}), ...port.env, DOTNET_STARTUP_HOOKS: hook },
+    });
+    if (!response.success) throw new Error(response.message || 'runInTerminal failed.');
+    const processId = await port.pid;
+    port.close();
+    renamedResponses.set(request.seq, request.command);
+    const { program, args: _args, env: _env, cwd: _cwd, console: _console, stopAtEntry: _stop, ...rest } = args;
+    return { ...request, command: 'attach', arguments: { ...rest, request: 'attach', processId } };
+  } catch (e) {
+    port?.close();
+    output(`Could not start in the terminal (${e.message}); using the debug console instead.\n`);
+    return null;
+  }
+}
+
 const ready = resolveAdapter().then(
   (path) => {
     adapter = spawn(path, ['--interpreter=vscode'], { stdio: ['pipe', 'pipe', 'inherit'] });
-    adapter.stdout.on('data', framer((m) => process.stdout.write(encode(m))));
+    adapter.stdout.on('data', framer(fromAdapter));
     adapter.on('error', (e) => {
       startError = `Could not start netcoredbg: ${e.message}`;
       process.stderr.write(`[csharp] ${startError}\n`);
@@ -104,6 +177,15 @@ let queue = Promise.resolve();
 process.stdin.on(
   'data',
   framer((message) => {
+    // Replies to our own requests skip the queue: the launch waiting on them holds it.
+    if (message.type === 'response' && reverseRequests.has(message.request_seq)) {
+      reverseRequests.get(message.request_seq)(message);
+      reverseRequests.delete(message.request_seq);
+      return;
+    }
+    if (message.type === 'request' && message.command === 'initialize') {
+      supportsRunInTerminal = message.arguments?.supportsRunInTerminalRequest === true;
+    }
     queue = queue.then(async () => {
       await ready;
       if (startError || !adapter) {
@@ -116,6 +198,10 @@ process.stdin.on(
           message = { ...message, arguments: await prepareLaunch(message.arguments ?? {}) };
         } catch (e) {
           return fail(message, e.message);
+        }
+        // netcoredbg can't run the program in a terminal itself, so start it there and attach.
+        if (message.arguments.console === 'integratedTerminal' && supportsRunInTerminal) {
+          message = (await launchInTerminal(message, message.arguments)) ?? message;
         }
       }
       adapter.stdin.write(encode(message));

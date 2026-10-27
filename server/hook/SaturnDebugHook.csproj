@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- netstandard2.0 so the hook loads into any .NET Core 3.0+ program. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>SaturnDebugHook</AssemblyName>
+  </PropertyGroup>
+
+</Project>
