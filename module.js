@@ -2,9 +2,10 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, sep } from 'node:path';
 import { KEYWORDS, PRIMITIVE_TYPES } from './lib/csharp.js';
 import { install as installCsharpLs, isInstalled as csharpLsInstalled } from './lib/csharpls.js';
-import { registerDotnetCommands, stopAll } from './lib/dotnet.js';
+import { registerDotnetCommands, stopAll, useDotnetSetting } from './lib/dotnet.js';
 import { registerSolutionExplorer } from './lib/explorer.js';
 import { renderSolution } from './lib/preview.js';
+import { registerTests, stopTests } from './lib/tests.js';
 import { createProject } from './lib/templates.js';
 
 const RESERVED = new Set([...KEYWORDS, ...PRIMITIVE_TYPES]);
@@ -90,10 +91,12 @@ let disposeExplorer = () => {};
 const previewCss = readFileSync(new URL('./preview.css', import.meta.url), 'utf8');
 
 export function activate(saturn) {
+  useDotnetSetting(() => saturn.settings?.get?.('dotnetPath'));
   saturn.previews?.registerRenderer('csharp.solutionPreview', (text, ctx) => renderSolution(text, ctx, previewCss));
   const dotnet = registerDotnetCommands(saturn);
   disposeExplorer = registerSolutionExplorer(saturn, dotnet);
   registerLanguageServerSetup(saturn);
+  registerTests(saturn);
 
   for (const [id, body] of Object.entries(TEMPLATES)) {
     saturn.files.registerTemplate(id, {
@@ -173,5 +176,6 @@ function registerLanguageServerSetup(saturn) {
 
 export function deactivate() {
   stopAll();
+  stopTests();
   disposeExplorer();
 }

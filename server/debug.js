@@ -2,18 +2,21 @@
  * Debug adapter for Saturn: a DAP proxy in front of netcoredbg. On `launch` without a `program`, it builds
  * the startup project and fills in its output assembly. With "console": "integratedTerminal" it runs the
  * program in Saturn's terminal via runInTerminal (so it can read input) and attaches to it, since netcoredbg
- * can't do that itself. netcoredbg comes from argv[2] when set, otherwise from module storage (downloaded on
- * first use).
+ * can't do that itself. With a `testProject` it runs `dotnet test` with VSTEST_HOST_DEBUG=1 and attaches to the
+ * testhost instead. netcoredbg comes from argv[2] when set, otherwise from module storage (downloaded on first
+ * use); argv[3] is the "dotnetPath" setting.
  */
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { listenForRuntime } from '../lib/diagport.js';
 import { binaryPath, install, isInstalled } from '../lib/netcoredbg.js';
-import { runTarget } from '../lib/dotnet.js';
+import { dotnetCommand, dotnetEnv, runTarget, useDotnetSetting } from '../lib/dotnet.js';
 
 const configured = (process.argv[2] ?? '').trim();
 const storage = process.env.SATURN_MODULE_STORAGE;
+const dotnetPath = (process.argv[3] ?? '').trim();
+useDotnetSetting(() => (dotnetPath.startsWith('${') ? '' : dotnetPath));
 
 /** Splits a DAP byte stream (Content-Length framed JSON) into messages. */
 function framer(onMessage) {
@@ -45,7 +48,7 @@ const fail = (request, message) =>
 function dotnet(args, cwd, onText) {
   return new Promise((resolve) => {
     let text = '';
-    const child = spawn('dotnet', args, { cwd, env: { ...process.env, DOTNET_CLI_UI_LANGUAGE: 'en', DOTNET_NOLOGO: '1' } });
+    const child = spawn(dotnetCommand(), args, { cwd, env: dotnetEnv() });
     const collect = (c) => {
       text += c;
       onText?.(c.toString());
@@ -140,12 +143,13 @@ async function launchInTerminal(request, args) {
       kind: 'integrated',
       title: basename(args.program, '.dll'),
       cwd: args.cwd || dirname(args.program),
-      args: ['dotnet', args.program, ...(args.args ?? [])],
+      args: [dotnetCommand(), args.program, ...(args.args ?? [])],
       env: { ...(args.env ?? {}), ...port.env, DOTNET_STARTUP_HOOKS: hook },
     });
     if (!response.success) throw new Error(response.message || 'runInTerminal failed.');
     const processId = await port.pid;
     port.close();
+    reportProcess(basename(args.program, '.dll'), processId);
     renamedResponses.set(request.seq, request.command);
     const { program, args: _args, env: _env, cwd: _cwd, console: _console, stopAtEntry: _stop, ...rest } = args;
     return { ...request, command: 'attach', arguments: { ...rest, request: 'attach', processId } };
@@ -153,6 +157,60 @@ async function launchInTerminal(request, args) {
     port?.close();
     output(`Could not start in the terminal (${e.message}); using the debug console instead.\n`);
     return null;
+  }
+}
+
+/**
+ * netcoredbg doesn't send DAP's `process` event, which Saturn needs to graph the debuggee's CPU and memory, so
+ * send it ourselves wherever we know the PID.
+ */
+const reportProcess = (name, systemProcessId) =>
+  toClient({ type: 'event', event: 'process', body: { name, systemProcessId, isLocalProcess: true, startMethod: 'attach' } });
+
+let testRun = null; // the `dotnet test` a test debug session attached to
+
+/**
+ * Runs the tests with VSTEST_HOST_DEBUG=1, which makes testhost print its PID and wait for a debugger, and
+ * turns the launch into an attach to it. Test output goes to the debug console.
+ */
+async function launchTests(request, args) {
+  const { testProject, testFilter, cwd, ...rest } = args;
+  const testArgs = ['test', testProject, ...(testFilter ? ['--filter', testFilter] : [])];
+  output(`> dotnet ${testArgs.map((a) => (/[\s|]/.test(a) ? `"${a}"` : a)).join(' ')}\n`);
+  const child = spawn(dotnetCommand(), testArgs, {
+    cwd: cwd || dirname(testProject),
+    env: dotnetEnv({ VSTEST_HOST_DEBUG: '1' }),
+    detached: process.platform !== 'win32',
+  });
+  testRun = child;
+  const processId = await new Promise((resolve, reject) => {
+    let text = '';
+    const onText = (chunk) => {
+      output(chunk.toString(), 'stdout');
+      text += chunk;
+      const m = /Process Id:\s*(\d+)/.exec(text);
+      if (m) resolve(Number(m[1]));
+    };
+    child.stdout.on('data', onText);
+    child.stderr.on('data', onText);
+    child.on('error', (e) => reject(new Error(`Could not run dotnet test: ${e.message}`)));
+    child.on('close', (code) => reject(new Error(code === 0 ? 'No tests ran, so there was nothing to debug.' : 'dotnet test failed. See the debug console.')));
+  });
+  reportProcess(`Tests: ${basename(testProject, '.csproj')}`, processId);
+  renamedResponses.set(request.seq, request.command);
+  const { program: _program, args: _args, env: _env, console: _console, stopAtEntry: _stop, project: _project, ...attach } = rest;
+  return { ...request, command: 'attach', arguments: { ...attach, request: 'attach', processId } };
+}
+
+function stopTestRun() {
+  if (!testRun?.pid || testRun.exitCode !== null) return;
+  if (process.platform === 'win32') spawn('taskkill', ['/pid', String(testRun.pid), '/T', '/F'], { stdio: 'ignore' });
+  else {
+    try {
+      process.kill(-testRun.pid, 'SIGTERM');
+    } catch {
+      testRun.kill('SIGTERM');
+    }
   }
 }
 
@@ -164,7 +222,10 @@ const ready = resolveAdapter().then(
       startError = `Could not start netcoredbg: ${e.message}`;
       process.stderr.write(`[csharp] ${startError}\n`);
     });
-    adapter.on('exit', (code) => process.exit(code ?? 0));
+    adapter.on('exit', (code) => {
+      stopTestRun();
+      process.exit(code ?? 0);
+    });
   },
   (e) => {
     startError = e.message;
@@ -193,7 +254,14 @@ process.stdin.on(
         if (message.command === 'disconnect') process.exit(0);
         return;
       }
-      if (message.type === 'request' && message.command === 'launch') {
+      if (message.type === 'request' && message.command === 'launch' && message.arguments?.testProject) {
+        try {
+          message = await launchTests(message, message.arguments);
+        } catch (e) {
+          stopTestRun();
+          return fail(message, e.message);
+        }
+      } else if (message.type === 'request' && message.command === 'launch') {
         try {
           message = { ...message, arguments: await prepareLaunch(message.arguments ?? {}) };
         } catch (e) {
@@ -205,7 +273,12 @@ process.stdin.on(
         }
       }
       adapter.stdin.write(encode(message));
+      // Disconnecting only detaches from an attached testhost, so stop the test run too.
+      if (message.type === 'request' && message.command === 'disconnect') stopTestRun();
     });
   }),
 );
-process.stdin.on('end', () => adapter?.kill());
+process.stdin.on('end', () => {
+  stopTestRun();
+  adapter?.kill();
+});

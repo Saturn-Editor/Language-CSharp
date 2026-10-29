@@ -2,9 +2,9 @@
   "id": "csharp",
   "name": "C# .NET",
   "badge": "C#",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Language module for C#/.NET projects",
-  "saturnApi": "^0.2",
+  "saturnApi": "^0.3",
   "main": "module.js",
   "requires": [
     {
@@ -82,7 +82,8 @@
       "command": "node",
       "args": [
         "server/launch.js",
-        "${setting:csharpLsPath}"
+        "${setting:csharpLsPath}",
+        "${setting:dotnetPath}"
       ],
       "features": [
         "completion",
@@ -161,7 +162,15 @@
       }
     ],
     "runConfigurations": true,
+    "tests": true,
     "settings": [
+      {
+        "id": "dotnetPath",
+        "label": ".NET CLI",
+        "type": "file",
+        "default": "",
+        "description": "The dotnet executable to use. Leave empty to use dotnet from PATH."
+      },
       {
         "id": "csharpLsPath",
         "label": "csharp-ls location",
@@ -392,7 +401,8 @@
       "command": "node",
       "args": [
         "server/debug.js",
-        "${setting:netcoredbgPath}"
+        "${setting:netcoredbgPath}",
+        "${setting:dotnetPath}"
       ],
       "launch": {
         "type": "coreclr",

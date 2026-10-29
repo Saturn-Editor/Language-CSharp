@@ -1,12 +1,16 @@
 /**
  * Starts csharp-ls for Saturn: the user's configured binary if set (argv[2]), otherwise the copy in module
- * storage, downloading it first when missing. stdout belongs to LSP, so progress goes to stderr.
+ * storage, downloading it first when missing. argv[3] is the "dotnetPath" setting. stdout belongs to LSP, so
+ * progress goes to stderr.
  */
 import { spawn } from 'node:child_process';
 import { binaryPath, install, isInstalled } from '../lib/csharpls.js';
+import { dotnetEnv, useDotnetSetting } from '../lib/dotnet.js';
 
 const configured = (process.argv[2] ?? '').trim();
 const storage = process.env.SATURN_MODULE_STORAGE;
+const dotnetPath = (process.argv[3] ?? '').trim();
+useDotnetSetting(() => (dotnetPath.startsWith('${') ? '' : dotnetPath));
 
 async function resolveBinary() {
   if (configured && !configured.startsWith('${')) return configured;
@@ -22,7 +26,7 @@ async function resolveBinary() {
 }
 
 try {
-  const child = spawn(await resolveBinary(), process.argv.slice(3), { stdio: 'inherit' });
+  const child = spawn(await resolveBinary(), process.argv.slice(4), { stdio: 'inherit', env: dotnetEnv() });
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
   child.on('error', (e) => {
     process.stderr.write(`[csharp] Could not start csharp-ls: ${e.message}\n`);
