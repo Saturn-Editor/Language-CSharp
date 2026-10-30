@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { basename, dirname, extname, join, relative, sep } from 'node:path';
-import { KEYWORDS, PRIMITIVE_TYPES } from './lib/csharp.js';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, dirname, extname, isAbsolute, join, relative, sep } from 'node:path';
+import { KEYWORDS, PRIMITIVE_TYPES, outline } from './lib/csharp.js';
 import { install as installCsharpLs, isInstalled as csharpLsInstalled } from './lib/csharpls.js';
+import { docCommentSnippet } from './lib/doccomment.js';
 import { registerDotnetCommands, stopAll, useDotnetSetting } from './lib/dotnet.js';
 import { registerSolutionExplorer } from './lib/explorer.js';
 import { renderSolution } from './lib/preview.js';
@@ -72,6 +73,34 @@ function wrapInNamespace({ namespace, fileScoped }, body) {
   return `namespace ${namespace}\n{\n${body.replace(/^(?=.)/gm, '    ')}\n}\n`;
 }
 
+const LANG_VERSIONS = [
+  { id: 'default', label: 'default', detail: 'The default for the target framework' },
+  { id: 'latest', label: 'latest', detail: 'Latest released version' },
+  { id: 'preview', label: 'preview', detail: 'Latest preview features' },
+  { id: '14', label: '14', detail: '.NET 10' },
+  { id: '13', label: '13', detail: '.NET 9' },
+  { id: '12', label: '12', detail: '.NET 8' },
+  { id: '11', label: '11', detail: '.NET 7' },
+  { id: '10', label: '10', detail: '.NET 6' },
+  { id: '9', label: '9', detail: '.NET 5' },
+  { id: '8', label: '8', detail: '.NET Core 3.x, .NET Standard 2.1' },
+  { id: '7.3', label: '7.3', detail: '.NET Framework' },
+];
+
+function withLangVersion(xml, version) {
+  const existing = /[ \t]*<LangVersion>[^<]*<\/LangVersion>[ \t]*\r?\n?/;
+  if (version === 'default') return xml.replace(existing, '');
+  if (existing.test(xml)) return xml.replace(/<LangVersion>[^<]*<\/LangVersion>/, `<LangVersion>${version}</LangVersion>`);
+  const group = /(<PropertyGroup\b[^>]*>)(\r?\n)([ \t]*)/.exec(xml);
+  if (group) return `${xml.slice(0, group.index)}${group[1]}${group[2]}${group[3]}<LangVersion>${version}</LangVersion>${group[2]}${group[3]}${xml.slice(group.index + group[0].length)}`;
+  return xml.replace(/(<Project\b[^>]*>)(\r?\n)?/, (_m, open, nl = '\n') => `${open}${nl}  <PropertyGroup>${nl}    <LangVersion>${version}</LangVersion>${nl}  </PropertyGroup>${nl}`);
+}
+
+function templateContent(id, ctx) {
+  const info = templateContext(ctx);
+  return wrapInNamespace(info, TEMPLATES[id](info.typeName));
+}
+
 const fileName = ({ name }) => (/\.[^.]+$/.test(name) ? name : `${name}.cs`);
 
 const TEMPLATES = {
@@ -94,19 +123,50 @@ export function activate(saturn) {
   useDotnetSetting(() => saturn.settings?.get?.('dotnetPath'));
   saturn.previews?.registerRenderer('csharp.solutionPreview', (text, ctx) => renderSolution(text, ctx, previewCss));
   const dotnet = registerDotnetCommands(saturn);
-  disposeExplorer = registerSolutionExplorer(saturn, dotnet);
+  disposeExplorer = registerSolutionExplorer(saturn, dotnet, templateContent);
   registerLanguageServerSetup(saturn);
   registerTests(saturn);
 
-  for (const [id, body] of Object.entries(TEMPLATES)) {
-    saturn.files.registerTemplate(id, {
-      fileName,
-      content: (ctx) => {
-        const info = templateContext(ctx);
-        return wrapInNamespace(info, body(info.typeName));
-      },
-    });
+  for (const id of Object.keys(TEMPLATES)) {
+    saturn.files.registerTemplate(id, { fileName, content: (ctx) => templateContent(id, ctx) });
   }
+
+  saturn.languages?.registerDocComment?.('csharp', docCommentSnippet);
+
+  saturn.languages?.registerVersions?.('csharp', {
+    list: () => LANG_VERSIONS,
+    async onChange({ projectPath, version }) {
+      const files = (await saturn.workspace.findFiles(projectPath, '**/*.csproj')).filter((f) => !/(^|[\\/])(bin|obj)[\\/]/.test(f));
+      for (const file of files) {
+        const path = isAbsolute(file) ? file : join(projectPath, file);
+        try {
+          writeFileSync(path, withLangVersion(readFileSync(path, 'utf8'), version.id));
+        } catch (e) {
+          saturn.window?.showMessage?.(`Could not update ${basename(path)}: ${e.message}`, { kind: 'warning', projectPath });
+        }
+      }
+      saturn.languageServer?.restart?.();
+    },
+  });
+
+  saturn.languages?.onDidRenameSymbol?.(async ({ projectPath, path, languageId, oldName, newName }) => {
+    if (languageId !== 'csharp' || !path || oldName === newName) return;
+    const file = isAbsolute(path) ? path : join(projectPath, path);
+    if (basename(file) !== `${oldName}.cs`) return;
+    let text;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch {
+      return;
+    }
+    const topLevel = outline(text).types.filter((t) => t.container === -1);
+    if (topLevel.length !== 1 || topLevel[0].name !== newName) return;
+    try {
+      await saturn.workspace.renameFile(projectPath, file, `${newName}.cs`);
+    } catch (e) {
+      saturn.window?.showMessage?.(`Could not rename ${oldName}.cs: ${e.message}`, { kind: 'warning', projectPath });
+    }
+  });
 
   saturn.commands.register('csharp.openProjectFile', async ({ projectPath }) => {
     for (const glob of ['**/*.csproj', '**/*.slnx', '**/*.sln']) {

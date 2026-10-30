@@ -2,9 +2,9 @@
   "id": "csharp",
   "name": "C# .NET",
   "badge": "C#",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Language module for C#/.NET projects",
-  "saturnApi": "^0.3",
+  "saturnApi": "^0.4",
   "main": "module.js",
   "requires": [
     {
@@ -20,7 +20,11 @@
     "workspaceContains:**/*.csproj",
     "workspaceContains:**/*.sln",
     "workspaceContains:**/*.slnx",
-    "workspaceContains:**/*.cs"
+    "workspaceContains:**/*.cs",
+    "onLanguage:csharp",
+    "onLanguage:sln",
+    "onLanguage:slnx",
+    "onLanguage:msbuild"
   ],
   "contributes": {
     "languages": [
@@ -32,7 +36,11 @@
           ".csx"
         ],
         "grammar": "grammars/csharp.tmLanguage.json",
-        "scopeName": "source.cs"
+        "scopeName": "source.cs",
+        "versions": true,
+        "docCommentTriggers": [
+          "///"
+        ]
       },
       {
         "id": "sln",
@@ -94,7 +102,10 @@
         "references",
         "rename",
         "formatting",
-        "signatureHelp"
+        "signatureHelp",
+        "inlayHints",
+        "codeLens",
+        "semanticTokens"
       ]
     },
     "fileTemplates": [
@@ -231,7 +242,12 @@
         "id": "csharp.solution",
         "title": "Solution Explorer",
         "dock": "left",
-        "icon": "solution-explorer.svg"
+        "icon": "solution-explorer.svg",
+        "showWhen": [
+          "**/*.sln",
+          "**/*.slnx",
+          "**/*.csproj"
+        ]
       }
     ],
     "newProject": {
