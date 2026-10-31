@@ -2,9 +2,9 @@
   "id": "csharp",
   "name": "C# .NET",
   "badge": "C#",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Language module for C#/.NET projects",
-  "saturnApi": "^0.4",
+  "saturnApi": "^1.0",
   "main": "module.js",
   "requires": [
     {
@@ -16,16 +16,6 @@
       "install": "Install the .NET SDK from https://dotnet.microsoft.com/download"
     }
   ],
-  "activationEvents": [
-    "workspaceContains:**/*.csproj",
-    "workspaceContains:**/*.sln",
-    "workspaceContains:**/*.slnx",
-    "workspaceContains:**/*.cs",
-    "onLanguage:csharp",
-    "onLanguage:sln",
-    "onLanguage:slnx",
-    "onLanguage:msbuild"
-  ],
   "contributes": {
     "languages": [
       {
@@ -36,7 +26,6 @@
           ".csx"
         ],
         "grammar": "grammars/csharp.tmLanguage.json",
-        "scopeName": "source.cs",
         "versions": true,
         "docCommentTriggers": [
           "///"
@@ -48,8 +37,7 @@
         "extensions": [
           ".sln"
         ],
-        "grammar": "grammars/sln.tmLanguage.json",
-        "scopeName": "source.sln"
+        "grammar": "grammars/sln.tmLanguage.json"
       },
       {
         "id": "slnx",
@@ -57,8 +45,7 @@
         "extensions": [
           ".slnx"
         ],
-        "grammar": "grammars/slnx.tmLanguage.json",
-        "scopeName": "text.xml.slnx"
+        "grammar": "grammars/slnx.tmLanguage.json"
       },
       {
         "id": "msbuild",
@@ -68,8 +55,7 @@
           ".props",
           ".targets"
         ],
-        "grammar": "grammars/msbuild.tmLanguage.json",
-        "scopeName": "text.xml.msbuild"
+        "grammar": "grammars/msbuild.tmLanguage.json"
       }
     ],
     "previews": [
